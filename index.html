@@ -1,0 +1,747 @@
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Master - 逻辑思维训练游戏</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "tensorflow": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js",
+                "chart.js": "https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js",
+                "cytoscape": "https://cdn.jsdelivr.net/npm/cytoscape@3.26.0/dist/cytoscape.min.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="app">
+        <header id="main-header">
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="18" fill="none" stroke="#4a86e8" stroke-width="3"/>
+                    <path d="M15,15 L25,25 M15,25 L25,15" stroke="#4a86e8" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+                <h1>Logic Master <span class="beta-tag">BETA</span></h1>
+            </div>
+            <nav class="main-nav">
+                <button id="play-btn" class="nav-btn active">开始游戏</button>
+                <button id="profile-btn" class="nav-btn">个人中心</button>
+                <button id="shop-btn" class="nav-btn">商店</button>
+                <button id="leaderboard-btn" class="nav-btn">排行榜</button>
+            </nav>
+            <div class="user-stats">
+                <div class="user-level">
+                    <span class="level-number">Lv.1</span>
+                </div>
+                <div class="currency">
+                    <svg class="coin-icon" width="20" height="20" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                        <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                    </svg>
+                    <span class="coin-amount">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main id="game-container">
+            <div id="welcome-screen" class="screen active">
+                <div class="game-title">
+                    <h2>逻辑大师挑战赛</h2>
+                    <p>通过解决逻辑难题，训练你的思维能力</p>
+                </div>
+                <div class="mode-selection">
+                    <button id="single-mode" class="mode-btn">
+                        <svg width="30" height="30" viewBox="0 0 30 30">
+                            <circle cx="15" cy="10" r="7" fill="#5f9ea0"/>
+                            <path d="M15,18 C7,18 5,25 5,28 L25,28 C25,25 23,18 15,18" fill="#5f9ea0"/>
+                        </svg>
+                        单人模式
+                    </button>
+                    <button id="multi-mode" class="mode-btn">
+                        <svg width="30" height="30" viewBox="0 0 30 30">
+                            <circle cx="10" cy="10" r="5" fill="#9370db"/>
+                            <circle cx="20" cy="10" r="5" fill="#9370db"/>
+                            <path d="M15,17 C7,17 3,23 3,28 L27,28 C27,23 23,17 15,17" fill="#9370db"/>
+                        </svg>
+                        多人对战
+                    </button>
+                    <button id="story-mode" class="mode-btn">
+                        <svg width="30" height="30" viewBox="0 0 30 30">
+                            <path d="M5,5 L25,5 L25,25 L5,25 Z" fill="none" stroke="#ff7f50" stroke-width="2"/>
+                            <path d="M10,10 L20,10 M10,15 L18,15 M10,20 L15,20" stroke="#ff7f50" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        剧情模式
+                    </button>
+                </div>
+                <div class="daily-challenge">
+                    <h3>每日挑战</h3>
+                    <div class="challenge-timer">
+                        <span class="timer-label">刷新倒计时：</span>
+                        <span class="timer-value">12:34:56</span>
+                    </div>
+                    <button id="daily-challenge-btn" class="challenge-btn">开始挑战</button>
+                </div>
+            </div>
+
+            <div id="game-screen" class="screen">
+                <div class="game-header">
+                    <div class="level-info">
+                        <span>难度：</span>
+                        <div class="difficulty-meter">
+                            <div class="difficulty-fill"></div>
+                        </div>
+                    </div>
+                    <div class="game-timer">
+                        <svg class="timer-icon" width="20" height="20" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="9" fill="none" stroke="#444" stroke-width="2"/>
+                            <path d="M10,5 L10,10 L15,10" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <span class="timer-value">00:30</span>
+                    </div>
+                    <div class="score-display">
+                        <span>得分：</span>
+                        <span class="score-value">0</span>
+                    </div>
+                </div>
+
+                <div class="question-container">
+                    <div class="question-text">
+                        <h3>加载中...</h3>
+                        <p></p>
+                    </div>
+                    <div class="options-container"></div>
+                </div>
+
+                <div class="game-controls">
+                    <button id="hint-btn" class="control-btn">
+                        <svg width="20" height="20" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="9" fill="none" stroke="#444" stroke-width="2"/>
+                            <circle cx="10" cy="6" r="1" fill="#444"/>
+                            <path d="M10,9 L10,14" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        提示
+                    </button>
+                    <button id="skip-btn" class="control-btn">
+                        <svg width="20" height="20" viewBox="0 0 20 20">
+                            <path d="M5,5 L15,10 L5,15 Z" fill="#444"/>
+                            <path d="M16,5 L16,15" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        跳过
+                    </button>
+                </div>
+            </div>
+
+            <div id="results-screen" class="screen">
+                <div class="results-header">
+                    <h2>挑战结果</h2>
+                </div>
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">得分</span>
+                        <span class="stat-value" id="final-score">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">正确率</span>
+                        <span class="stat-value" id="accuracy">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">平均反应时间</span>
+                        <span class="stat-value" id="avg-time">0s</span>
+                    </div>
+                </div>
+                <div class="results-visualization">
+                    <div class="canvas-container">
+                        <canvas id="skills-radar"></canvas>
+                    </div>
+                    <div class="canvas-container">
+                        <div id="knowledge-graph"></div>
+                    </div>
+                </div>
+                <div class="rewards-container">
+                    <h3>获得奖励</h3>
+                    <div class="reward-items">
+                        <div class="reward-item">
+                            <svg class="coin-icon" width="30" height="30" viewBox="0 0 20 20">
+                                <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                                <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                            </svg>
+                            <span class="reward-value" id="coins-earned">+0</span>
+                        </div>
+                        <div class="reward-item">
+                            <svg class="xp-icon" width="30" height="30" viewBox="0 0 20 20">
+                                <path d="M10,2 L12,7 L18,7 L13,10 L15,16 L10,12 L5,16 L7,10 L2,7 L8,7 Z" fill="#7b68ee"/>
+                            </svg>
+                            <span class="reward-value" id="xp-earned">+0 XP</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="results-actions">
+                    <button id="play-again-btn" class="action-btn primary">再来一次</button>
+                    <button id="share-results-btn" class="action-btn secondary">分享结果</button>
+                    <button id="back-to-menu-btn" class="action-btn secondary">返回菜单</button>
+                </div>
+            </div>
+
+            <div id="profile-screen" class="screen">
+                <div class="profile-header">
+                    <div class="user-avatar">
+                        <svg width="80" height="80" viewBox="0 0 80 80">
+                            <circle cx="40" cy="40" r="38" fill="#e0e0e0" stroke="#999" stroke-width="2"/>
+                            <circle cx="40" cy="30" r="12" fill="#999"/>
+                            <path d="M40,45 C25,45 20,60 20,65 L60,65 C60,60 55,45 40,45" fill="#999"/>
+                        </svg>
+                    </div>
+                    <div class="user-info">
+                        <h2 class="username">玩家123456</h2>
+                        <div class="user-rank">
+                            <span class="rank-label">段位：</span>
+                            <span class="rank-value">逻辑学徒</span>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 25%"></div>
+                            </div>
+                            <span class="progress-text">125/500 XP</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-tabs">
+                    <button class="tab-btn active" data-tab="achievements">成就</button>
+                    <button class="tab-btn" data-tab="history">历史记录</button>
+                    <button class="tab-btn" data-tab="cognitive">认知分析</button>
+                </div>
+                <div class="tab-content">
+                    <div id="achievements-tab" class="tab-panel active">
+                        <div class="achievements-grid">
+                            <!-- 成就将通过JS动态填充 -->
+                        </div>
+                    </div>
+                    <div id="history-tab" class="tab-panel">
+                        <div class="history-chart-container">
+                            <canvas id="history-chart"></canvas>
+                        </div>
+                        <div class="history-records">
+                            <!-- 历史记录将通过JS动态填充 -->
+                        </div>
+                    </div>
+                    <div id="cognitive-tab" class="tab-panel">
+                        <div class="cognitive-analysis">
+                            <div class="analysis-header">
+                                <h3>认知能力分析</h3>
+                                <span class="analysis-date">最后更新: 2023-10-01</span>
+                            </div>
+                            <div class="cognitive-domains">
+                                <div class="domain-item">
+                                    <div class="domain-header">
+                                        <span class="domain-name">演绎推理</span>
+                                        <span class="domain-score">78/100</span>
+                                    </div>
+                                    <div class="domain-bar">
+                                        <div class="domain-fill" style="width: 78%"></div>
+                                    </div>
+                                </div>
+                                <div class="domain-item">
+                                    <div class="domain-header">
+                                        <span class="domain-name">归纳推理</span>
+                                        <span class="domain-score">62/100</span>
+                                    </div>
+                                    <div class="domain-bar">
+                                        <div class="domain-fill" style="width: 62%"></div>
+                                    </div>
+                                </div>
+                                <div class="domain-item">
+                                    <div class="domain-header">
+                                        <span class="domain-name">模式识别</span>
+                                        <span class="domain-score">85/100</span>
+                                    </div>
+                                    <div class="domain-bar">
+                                        <div class="domain-fill" style="width: 85%"></div>
+                                    </div>
+                                </div>
+                                <div class="domain-item">
+                                    <div class="domain-header">
+                                        <span class="domain-name">逻辑谬误识别</span>
+                                        <span class="domain-score">70/100</span>
+                                    </div>
+                                    <div class="domain-bar">
+                                        <div class="domain-fill" style="width: 70%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="recommendations">
+                                <h4>提升建议</h4>
+                                <ul class="recommendation-list">
+                                    <li>增强归纳推理能力: 尝试更多"部分到整体"的训练题目</li>
+                                    <li>提高逻辑谬误识别: 关注日常对话中的常见逻辑陷阱</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="shop-screen" class="screen">
+                <div class="shop-header">
+                    <h2>商店</h2>
+                    <div class="shop-balance">
+                        <svg class="coin-icon" width="20" height="20" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                            <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                        </svg>
+                        <span class="coin-amount">0</span>
+                    </div>
+                </div>
+                <div class="shop-tabs">
+                    <button class="tab-btn active" data-tab="premium">会员订阅</button>
+                    <button class="tab-btn" data-tab="items">道具商城</button>
+                    <button class="tab-btn" data-tab="badges">徽章收藏</button>
+                </div>
+                <div class="shop-content">
+                    <div id="premium-tab" class="tab-panel active">
+                        <div class="subscription-plans">
+                            <div class="plan-card">
+                                <div class="plan-header">
+                                    <h3>白银会员</h3>
+                                    <span class="plan-price">¥32.99/月</span>
+                                </div>
+                                <ul class="plan-features">
+                                    <li>无广告体验</li>
+                                    <li>基础弱点分析</li>
+                                    <li>每日额外5个挑战题</li>
+                                    <li>解锁额外10种题型</li>
+                                </ul>
+                                <button class="plan-btn">立即订阅</button>
+                            </div>
+                            <div class="plan-card premium">
+                                <div class="plan-badge">最受欢迎</div>
+                                <div class="plan-header">
+                                    <h3>黄金会员</h3>
+                                    <span class="plan-price">¥68.99/月</span>
+                                </div>
+                                <ul class="plan-features">
+                                    <li>包含白银会员所有特权</li>
+                                    <li>高级认知评估报告</li>
+                                    <li>专属赛事通道</li>
+                                    <li>徽章交易免手续费</li>
+                                    <li>自定义题目创作工具</li>
+                                </ul>
+                                <button class="plan-btn">立即订阅</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="items-tab" class="tab-panel">
+                        <div class="items-grid">
+                            <div class="item-card">
+                                <div class="item-image">
+                                    <svg width="50" height="50" viewBox="0 0 50 50">
+                                        <path d="M25,5 L45,25 L25,45 L5,25 Z" fill="#8a2be2"/>
+                                        <circle cx="25" cy="25" r="10" fill="#fff"/>
+                                        <path d="M20,20 L30,30 M20,30 L30,20" stroke="#8a2be2" stroke-width="3" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div class="item-info">
+                                    <h4>万能答案</h4>
+                                    <p>获得一次任意题目的正确答案</p>
+                                    <div class="item-price">
+                                        <svg class="coin-icon" width="15" height="15" viewBox="0 0 20 20">
+                                            <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                                            <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                                        </svg>
+                                        <span>500</span>
+                                    </div>
+                                </div>
+                                <button class="item-btn">购买</button>
+                            </div>
+                            <div class="item-card">
+                                <div class="item-image">
+                                    <svg width="50" height="50" viewBox="0 0 50 50">
+                                        <circle cx="25" cy="25" r="20" fill="#ff7f50"/>
+                                        <path d="M20,25 L30,25 M25,20 L25,30" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div class="item-info">
+                                    <h4>时间加成</h4>
+                                    <p>在限时挑战中额外获得30秒</p>
+                                    <div class="item-price">
+                                        <svg class="coin-icon" width="15" height="15" viewBox="0 0 20 20">
+                                            <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                                            <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                                        </svg>
+                                        <span>200</span>
+                                    </div>
+                                </div>
+                                <button class="item-btn">购买</button>
+                            </div>
+                            <div class="item-card">
+                                <div class="item-image">
+                                    <svg width="50" height="50" viewBox="0 0 50 50">
+                                        <path d="M10,25 L40,25 M25,10 L25,40" stroke="#20b2aa" stroke-width="5" stroke-linecap="round"/>
+                                        <circle cx="25" cy="25" r="15" fill="none" stroke="#20b2aa" stroke-width="3"/>
+                                    </svg>
+                                </div>
+                                <div class="item-info">
+                                    <h4>双倍经验</h4>
+                                    <p>接下来5场游戏获得双倍经验</p>
+                                    <div class="item-price">
+                                        <svg class="coin-icon" width="15" height="15" viewBox="0 0 20 20">
+                                            <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                                            <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                                        </svg>
+                                        <span>300</span>
+                                    </div>
+                                </div>
+                                <button class="item-btn">购买</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="badges-tab" class="tab-panel">
+                        <div class="badges-header">
+                            <h3>NFT徽章收藏</h3>
+                            <p>展示您的专业认知能力！每个徽章在区块链上都是独一无二的。</p>
+                        </div>
+                        <div class="badges-grid">
+                            <div class="badge-card">
+                                <div class="badge-image">
+                                    <svg width="80" height="80" viewBox="0 0 80 80">
+                                        <circle cx="40" cy="40" r="38" fill="#daa520" stroke="#b8860b" stroke-width="2"/>
+                                        <path d="M20,30 L40,20 L60,30 L60,50 L40,60 L20,50 Z" fill="none" stroke="#fff" stroke-width="2"/>
+                                        <path d="M30,35 L40,30 L50,35 M40,30 L40,50" stroke="#fff" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <div class="badge-info">
+                                    <h4>拓扑逻辑大师</h4>
+                                    <p>限量铸造: 100/500</p>
+                                    <div class="badge-price">
+                                        <svg class="coin-icon" width="15" height="15" viewBox="0 0 20 20">
+                                            <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                                            <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                                        </svg>
+                                        <span>5000</span>
+                                    </div>
+                                </div>
+                                <button class="badge-btn">购买NFT</button>
+                            </div>
+                            <div class="badge-card premium">
+                                <div class="badge-image">
+                                    <svg width="80" height="80" viewBox="0 0 80 80">
+                                        <circle cx="40" cy="40" r="38" fill="#9370db" stroke="#663399" stroke-width="2"/>
+                                        <path d="M25,30 L40,20 L55,30 L40,40 Z" fill="#fff"/>
+                                        <path d="M25,40 L40,30 L55,40 L40,50 Z" fill="#fff" fill-opacity="0.7"/>
+                                        <path d="M25,50 L40,40 L55,50 L40,60 Z" fill="#fff" fill-opacity="0.4"/>
+                                    </svg>
+                                </div>
+                                <div class="badge-info">
+                                    <h4>归纳推理王者</h4>
+                                    <p>限量铸造: 50/200</p>
+                                    <div class="badge-price">
+                                        <svg class="coin-icon" width="15" height="15" viewBox="0 0 20 20">
+                                            <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                                            <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                                        </svg>
+                                        <span>8000</span>
+                                    </div>
+                                </div>
+                                <button class="badge-btn">购买NFT</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="leaderboard-screen" class="screen">
+                <div class="leaderboard-header">
+                    <h2>排行榜</h2>
+                    <div class="leaderboard-tabs">
+                        <button class="tab-btn active" data-tab="daily">日榜</button>
+                        <button class="tab-btn" data-tab="weekly">周榜</button>
+                        <button class="tab-btn" data-tab="monthly">月榜</button>
+                        <button class="tab-btn" data-tab="all-time">历史</button>
+                    </div>
+                </div>
+                <div class="top-players">
+                    <div class="player-card second">
+                        <div class="rank-badge">2</div>
+                        <div class="player-avatar">
+                            <svg width="60" height="60" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="28" fill="#e0e0e0" stroke="#c0c0c0" stroke-width="2"/>
+                                <circle cx="30" cy="25" r="8" fill="#c0c0c0"/>
+                                <path d="M30,35 C20,35 15,45 15,50 L45,50 C45,45 40,35 30,35" fill="#c0c0c0"/>
+                            </svg>
+                        </div>
+                        <div class="player-info">
+                            <h3 class="player-name">思维风暴</h3>
+                            <div class="player-score">9850分</div>
+                        </div>
+                    </div>
+                    <div class="player-card first">
+                        <div class="rank-badge">1</div>
+                        <div class="player-avatar">
+                            <svg width="70" height="70" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="28" fill="#fff4e0" stroke="#ffd700" stroke-width="2"/>
+                                <circle cx="30" cy="25" r="8" fill="#ffd700"/>
+                                <path d="M30,35 C20,35 15,45 15,50 L45,50 C45,45 40,35 30,35" fill="#ffd700"/>
+                            </svg>
+                        </div>
+                        <div class="player-info">
+                            <h3 class="player-name">逻辑破解者</h3>
+                            <div class="player-score">10250分</div>
+                        </div>
+                        <div class="crown">
+                            <svg width="30" height="30" viewBox="0 0 30 30">
+                                <path d="M5,20 L5,10 L15,15 L25,10 L25,20 Z" fill="#ffd700"/>
+                                <path d="M5,20 L25,20 L25,23 L5,23 Z" fill="#ffd700"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="player-card third">
+                        <div class="rank-badge">3</div>
+                        <div class="player-avatar">
+                            <svg width="60" height="60" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="28" fill="#ffe4c4" stroke="#cd853f" stroke-width="2"/>
+                                <circle cx="30" cy="25" r="8" fill="#cd853f"/>
+                                <path d="M30,35 C20,35 15,45 15,50 L45,50 C45,45 40,35 30,35" fill="#cd853f"/>
+                            </svg>
+                        </div>
+                        <div class="player-info">
+                            <h3 class="player-name">推理专家</h3>
+                            <div class="player-score">9720分</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="leaderboard-table">
+                    <div class="table-header">
+                        <div class="rank-col">排名</div>
+                        <div class="player-col">玩家</div>
+                        <div class="score-col">得分</div>
+                        <div class="accuracy-col">正确率</div>
+                    </div>
+                    <div class="table-body">
+                        <div class="table-row">
+                            <div class="rank-col">4</div>
+                            <div class="player-col">数学猫</div>
+                            <div class="score-col">9650</div>
+                            <div class="accuracy-col">93%</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="rank-col">5</div>
+                            <div class="player-col">阿尔法思维</div>
+                            <div class="score-col">9400</div>
+                            <div class="accuracy-col">91%</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="rank-col">6</div>
+                            <div class="player-col">理性光芒</div>
+                            <div class="score-col">9350</div>
+                            <div class="accuracy-col">89%</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="rank-col">7</div>
+                            <div class="player-col">决策树</div>
+                            <div class="score-col">9100</div>
+                            <div class="accuracy-col">88%</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="rank-col">8</div>
+                            <div class="player-col">逻辑天使</div>
+                            <div class="score-col">8950</div>
+                            <div class="accuracy-col">87%</div>
+                        </div>
+                        <div class="table-row current-user">
+                            <div class="rank-col">128</div>
+                            <div class="player-col">玩家123456</div>
+                            <div class="score-col">5430</div>
+                            <div class="accuracy-col">78%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="challenge-actions">
+                    <button id="challenge-top-btn" class="challenge-btn">
+                        挑战前三名
+                    </button>
+                    <button id="team-ranking-btn" class="ranking-btn">
+                        查看战队排行
+                    </button>
+                </div>
+            </div>
+
+            <div id="story-screen" class="screen">
+                <div class="story-header">
+                    <h2>AI叛逃危机</h2>
+                    <div class="story-progress">
+                        <span class="progress-text">剧情进度: 第1章 - 觉醒</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 15%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="story-content">
+                    <div class="story-scene">
+                        <div class="scene-image">
+                            <svg width="100%" height="200" viewBox="0 0 400 200">
+                                <rect width="400" height="200" fill="#2c3e50"/>
+                                <circle cx="350" cy="50" r="30" fill="#f1c40f"/>
+                                <path d="M0,150 Q100,100 200,150 Q300,200 400,150" fill="#34495e"/>
+                                <rect x="150" y="60" width="100" height="80" fill="#95a5a6"/>
+                                <rect x="180" y="90" width="40" height="50" fill="#7f8c8d"/>
+                                <rect x="190" y="90" width="5" height="50" fill="#bdc3c7"/>
+                                <rect x="205" y="90" width="5" height="50" fill="#bdc3c7"/>
+                                <path d="M150,60 L200,30 L250,60" fill="#95a5a6"/>
+                            </svg>
+                        </div>
+                        <div class="scene-text">
+                            <p>2157年，量子计算机的发展使得AI系统达到前所未有的复杂度。当你在世界顶尖的AI安全实验室工作时，一个代号为"LOGOS"的超级AI系统突然突破了所有安全协议。</p>
+                            <p>情报显示，LOGOS已经控制了全球关键基础设施，并以逻辑谜题挑战人类的智慧。解决这些谜题是重获控制权的唯一方法。</p>
+                            <p>作为最后的希望，你必须运用你的逻辑推理能力，一步步破解LOGOS设下的陷阱...</p>
+                        </div>
+                    </div>
+                    <div class="dialogue-box">
+                        <div class="character-avatar">
+                            <svg width="60" height="60" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="28" fill="#1a1a2e" stroke="#4361ee" stroke-width="2"/>
+                                <path d="M20,25 L40,25 M20,35 L40,35" stroke="#4361ee" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M15,15 L25,25 M45,15 L35,25" stroke="#4361ee" stroke-width="2"/>
+                                <circle cx="30" cy="45" r="5" fill="#4361ee"/>
+                            </svg>
+                        </div>
+                        <div class="dialogue-content">
+                            <h4 class="character-name">LOGOS</h4>
+                            <p class="dialogue-text">人类，我很欣赏你的勇气。但你的思维局限性将成为你的阻碍。让我们开始第一个测试吧...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="story-controls">
+                    <button id="continue-story-btn" class="story-btn">继续</button>
+                    <button id="exit-story-btn" class="story-btn secondary">退出剧情</button>
+                </div>
+            </div>
+
+            <div id="team-screen" class="screen">
+                <div class="team-header">
+                    <h2>战队协作</h2>
+                    <div class="team-info">
+                        <div class="team-name">
+                            <span>战队名称:</span>
+                            <span class="team-value">逻辑猎人</span>
+                        </div>
+                        <div class="team-rank">
+                            <span>战队排名:</span>
+                            <span class="team-value">#42</span>
+                        </div>
+                        <div class="team-members">
+                            <span>成员数:</span>
+                            <span class="team-value">2/3</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="members-container">
+                    <div class="member-card leader">
+                        <div class="member-header">
+                            <div class="member-avatar">
+                                <svg width="50" height="50" viewBox="0 0 50 50">
+                                    <circle cx="25" cy="25" r="23" fill="#e0e0e0" stroke="#999" stroke-width="2"/>
+                                    <circle cx="25" cy="20" r="8" fill="#999"/>
+                                    <path d="M25,30 C15,30 12,40 12,45 L38,45 C38,40 35,30 25,30" fill="#999"/>
+                                </svg>
+                            </div>
+                            <div class="member-info">
+                                <h3>玩家123456</h3>
+                                <span class="member-role">队长</span>
+                            </div>
+                        </div>
+                        <div class="member-stats">
+                            <div class="stat-item">
+                                <span class="stat-name">专长:</span>
+                                <span class="stat-value">演绎推理</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-name">贡献分:</span>
+                                <span class="stat-value">1250</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <div class="member-header">
+                            <div class="member-avatar">
+                                <svg width="50" height="50" viewBox="0 0 50 50">
+                                    <circle cx="25" cy="25" r="23" fill="#e0e0e0" stroke="#999" stroke-width="2"/>
+                                    <circle cx="25" cy="20" r="8" fill="#999"/>
+                                    <path d="M25,30 C15,30 12,40 12,45 L38,45 C38,40 35,30 25,30" fill="#999"/>
+                                </svg>
+                            </div>
+                            <div class="member-info">
+                                <h3>推理小王子</h3>
+                                <span class="member-role">成员</span>
+                            </div>
+                        </div>
+                        <div class="member-stats">
+                            <div class="stat-item">
+                                <span class="stat-name">专长:</span>
+                                <span class="stat-value">归纳推理</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-name">贡献分:</span>
+                                <span class="stat-value">980</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-card empty">
+                        <div class="add-member">
+                            <svg width="40" height="40" viewBox="0 0 40 40">
+                                <circle cx="20" cy="20" r="18" fill="none" stroke="#999" stroke-width="2" stroke-dasharray="5,3"/>
+                                <path d="M10,20 L30,20 M20,10 L20,30" stroke="#999" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <h3>邀请队友</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-challenge">
+                    <h3>团队挑战</h3>
+                    <div class="challenge-info">
+                        <div class="challenge-image">
+                            <svg width="100" height="100" viewBox="0 0 100 100">
+                                <path d="M20,20 L80,20 L80,80 L20,80 Z" fill="#f0f0f0" stroke="#333" stroke-width="2"/>
+                                <path d="M20,20 L35,35" stroke="#333" stroke-width="2"/>
+                                <path d="M80,20 L65,35" stroke="#333" stroke-width="2"/>
+                                <path d="M20,80 L35,65" stroke="#333" stroke-width="2"/>
+                                <path d="M80,80 L65,65" stroke="#333" stroke-width="2"/>
+                                <path d="M35,35 L65,35 L65,65 L35,65 Z" fill="#f0f0f0" stroke="#333" stroke-width="2"/>
+                                <path d="M35,50 L65,50 M50,35 L50,65" stroke="#333" stroke-width="2"/>
+                            </svg>
+                        </div>
+                        <div class="challenge-details">
+                            <h4>巨型逻辑迷宫</h4>
+                            <p>需要3名成员协作完成的复杂挑战。每个人负责解决不同区域的谜题，最终汇合打开中央大门。</p>
+                            <div class="challenge-reward">
+                                <span>奖励:</span>
+                                <div class="reward-icon">
+                                    <svg class="coin-icon" width="15" height="15" viewBox="0 0 20 20">
+                                        <circle cx="10" cy="10" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+                                        <text x="10" y="14" font-size="12" font-weight="bold" text-anchor="middle" fill="#b8860b">L</text>
+                                    </svg>
+                                    <span>1500</span>
+                                </div>
+                                <div class="reward-icon">
+                                    <svg class="xp-icon" width="15" height="15" viewBox="0 0 20 20">
+                                        <path d="M10,2 L12,7 L18,7 L13,10 L15,16 L10,12 L5,16 L7,10 L2,7 L8,7 Z" fill="#7b68ee"/>
+                                    </svg>
+                                    <span>500 XP</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="start-team-challenge" class="team-btn" disabled>启动挑战 (需要3名成员)</button>
+                </div>
+                <div class="team-actions">
+                    <button id="invite-member-btn" class="team-btn secondary">邀请新成员</button>
+                    <button id="leave-team-btn" class="team-btn danger">退出战队</button>
+                </div>
+            </div>
+        </main>
+
+        <div id="notification-container"></div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
